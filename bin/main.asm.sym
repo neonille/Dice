@@ -1,0 +1,107 @@
+--- Symbol List (sorted by symbol)
+audc0                    0015              (R )
+audc1                    0016                  
+audf0                    0017              (R )
+audf1                    0018                  
+audv0                    0019              (R )
+audv1                    001a                  
+bottom                   f0a2              (R )
+bytemap                  f0e1              (R )
+clear                    f008              (R )
+colubk                   0009              (R )
+colup0                   0006                  
+colup1                   0007                  
+colupf                   0008              (R )
+ctrlpf                   000a              (R )
+cxblpf                   0006                  
+cxclr                    002c                  
+cxm0fb                   0004                  
+cxm0p                    0000                  
+cxm1fb                   0005                  
+cxm1p                    0001                  
+cxp0fb                   0002                  
+cxp1fb                   0003                  
+cxppmm                   0007                  
+diceGrPt                 0081              (R )
+diceroll                 0090              (R )
+donepf                   f099              (R )
+enabl                    001f                  
+enam0                    001d                  
+enam1                    001e                  
+fireflag                 0083                  
+five                     f20d              (R )
+four                     f1c5              (R )
+grp0                     001b                  
+grp1                     001c                  
+hmbl                     0024                  
+hmclr                    002b                  
+hmm0                     0022                  
+hmm1                     0023                  
+hmove                    002a                  
+hmp0                     0020                  
+hmp1                     0021                  
+inpt0                    0008                  
+inpt1                    0009                  
+inpt2                    000a                  
+inpt3                    000b                  
+inpt4                    000c              (R )
+inpt5                    000d                  
+intim                    0284                  
+nopress                  f05c              (R )
+nostatechange            f0d7              (R )
+notaps                   f04c              (R )
+nusiz0                   0004                  
+nusiz1                   0005                  
+one                      f0ed              (R )
+pf0                      000d              (R )
+pf1                      000e              (R )
+pf2                      000f              (R )
+pfrow                    0080              (R )
+refp0                    000b                  
+refp1                    000c                  
+render1                  f08c                  
+render2                  f0c2              (R )
+renderbottom             f09c              (R )
+rendertop                f079                  
+resbl                    0014                  
+resm0                    0012                  
+resm1                    0013                  
+resmp0                   0028                  
+resmp1                   0029                  
+resp0                    0010                  
+resp1                    0011                  
+rolldice                 f045              (R )
+rolltimer                0085              (R )
+rsync                    0003                  
+seed                     00ff              (R )
+six                      f255              (R )
+start                    f000              (R )
+state                    0084              (R )
+swacnt                   0281                  
+swbcnt                   0283                  
+swcha                    0280                  
+swchb                    0282                  
+sync                     f02f              (R )
+t1024t                   0297                  
+three                    f17d              (R )
+tia_base_address         0000              (R )
+tia_base_read_address    0000              (R )
+tia_base_write_address   0000              (R )
+tim1t                    0294                  
+tim64t                   0296                  
+tim8t                    0295                  
+timer                    0032              (R )
+timint                   0285                  
+top                      f07b              (R )
+two                      f135              (R )
+updatePf                 f0aa              (R )
+vblank                   0001              (R )
+vdelbl                   0027                  
+vdelp0                   0025                  
+vdelp1                   0026                  
+version_vcs              006a                  
+visible                  f094              (R )
+visible2                 f0d9              (R )
+vsync                    0000              (R )
+wsync                    0002              (R )
+--- End of Symbol List.

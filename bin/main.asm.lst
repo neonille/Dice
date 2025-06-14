@@ -1,0 +1,553 @@
+------- FILE main.asm LEVEL 1 PASS 2
+      1  fffe					      processor	6502
+------- FILE vcs.h LEVEL 2 PASS 2
+      0  10000 ????				       include	"vcs.h"
+      1  10000 ????						; vcs.h
+      2  10000 ????						; version 1.06, 06/sep/2020
+      3  10000 ????
+      4  10000 ????		00 6a	    version_vcs =	106
+      5  10000 ????
+      6  10000 ????						; this is *the* "standard" vcs.h
+      7  10000 ????						; this file is explicitly supported as a dasm-preferred companion file
+      8  10000 ????						; the latest version can be found at https://dasm-assembler.github.io/
+      9  10000 ????						;
+     10  10000 ????						; this file defines hardware registers and memory mapping for the
+     11  10000 ????						; atari 2600. it is distributed as a companion machine-specific support package
+     12  10000 ????						; for the dasm compiler. updates to this file, dasm, and associated tools are
+     13  10000 ????						; available at at https://dasm-assembler.github.io/
+     14  10000 ????						;
+     15  10000 ????						; many thanks to the people who have contributed. if you find an issue with the
+     16  10000 ????						; contents, or would like ot add something, please report as an issue at...
+     17  10000 ????						; https://github.com/dasm-assembler/dasm/issues
+     18  10000 ????
+     19  10000 ????						;
+     20  10000 ????						; latest revisions...
+     21  10000 ????						; 1.06  05/sep/2020	 modified header/license and links to new versions
+     22  10000 ????						; 1.05  13/nov/2003	  - correction to 1.04 - now functions as requested by mr.
+     23  10000 ????						;			  - added version_vcs equate (which will reflect 100x version #)
+     24  10000 ????						;			    this will allow conditional code to verify vcs.h being
+     25  10000 ????						;			    used for code assembly.
+     26  10000 ????						; 1.04  12/nov/2003	 added tia_base_write_address and tia_base_read_address for
+     27  10000 ????						;			 convenient disassembly/reassembly compatibility for hardware
+     28  10000 ????						;			 mirrored reading/writing differences.	this is more a 
+     29  10000 ????						;			 readability issue, and binary compatibility with disassembled
+     30  10000 ????						;			 and reassembled sources.  per manuel rotschkar's suggestion.
+     31  10000 ????						; 1.03  12/may/2003	 added seg segment at end of file to fix old-code compatibility
+     32  10000 ????						;			 which was broken by the use of segments in this file, as
+     33  10000 ????						;			 reported by manuel polik on [stella] 11/may/2003
+     34  10000 ????						; 1.02  22/mar/2003	 added timint($285)
+     35  10000 ????						; 1.01				constant offset added to allow use for 3f-style bankswitching
+     36  10000 ????						;						 - define tia_base_address as $40 for tigervision carts, otherwise
+     37  10000 ????						;						   it is safe to leave it undefined, and the base address will
+     38  10000 ????						;						   be set to 0.  thanks to eckhard stolberg for the suggestion.
+     39  10000 ????						;			    note, may use -dlabel=expression to define tia_base_address
+     40  10000 ????						;			  - register definitions are now generated through assignment
+     41  10000 ????						;			    in uninitialised segments.	this allows a changeable base
+     42  10000 ????						;			    address architecture.
+     43  10000 ????						; 1.0	22/mar/2003		initial release
+     44  10000 ????
+     45  10000 ????
+     46  10000 ????						;-------------------------------------------------------------------------------
+     47  10000 ????
+     48  10000 ????						; tia_base_address
+     49  10000 ????						; the tia_base_address defines the base address of access to tia registers.
+     50  10000 ????						; normally 0, the base address should (externally, before including this file)
+     51  10000 ????						; be set to $40 when creating 3f-bankswitched (and other?) cartridges.
+     52  10000 ????						; the reason is that this bankswitching scheme treats any access to locations
+     53  10000 ????						; < $40 as a bankswitch.
+     54  10000 ????
+     55  10000 ????			   -	       ifnconst	tia_base_address
+     56  10000 ????			   -tia_base_address =	0
+     57  10000 ????				       endif
+     58  10000 ????
+     59  10000 ????						; note: the address may be defined on the command-line using the -d switch, eg:
+     60  10000 ????						; dasm.exe code.asm -dtia_base_address=$40 -f3 -v5 -ocode.bin
+     61  10000 ????						; *or* by declaring the label before including this file, eg:
+     62  10000 ????						; tia_base_address = $40
+     63  10000 ????						;   include "vcs.h"
+     64  10000 ????
+     65  10000 ????						; alternate read/write address capability - allows for some disassembly compatibility
+     66  10000 ????						; usage ; to allow reassembly to binary perfect copies).  this is essentially catering
+     67  10000 ????						; for the mirrored rom hardware registers.
+     68  10000 ????
+     69  10000 ????						; usage: as per above, define the tia_base_read_address and/or tia_base_write_address
+     70  10000 ????						; using the -d command-line switch, as required.  if the addresses are not defined, 
+     71  10000 ????						; they defaut to the tia_base_address.
+     72  10000 ????
+     73  10000 ????			   -	       ifnconst	tia_base_read_address
+     74  10000 ????			   -tia_base_read_address =	tia_base_address
+     75  10000 ????				       endif
+     76  10000 ????
+     77  10000 ????			   -	       ifnconst	tia_base_write_address
+     78  10000 ????			   -tia_base_write_address =	tia_base_address
+     79  10000 ????				       endif
+     80  10000 ????
+     81  10000 ????						;-------------------------------------------------------------------------------
+     82  10000 ????
+     83 U002d ????				      seg.u	tia_registers_write
+     84 U0000					      org	tia_base_write_address
+     85 U0000
+     86 U0000							; do not change the relative ordering of registers!
+     87 U0000
+     88 U0000		       00	   vsync      ds	1	; $00	 0000 00x0   vertical sync set-clear
+     89 U0001		       00	   vblank     ds	1	; $01	 xx00 00x0   vertical blank set-clear
+     90 U0002		       00	   wsync      ds	1	; wsync    ---- ----	wait for horizontal blank
+     91 U0003		       00	   rsync      ds	1	; $03	 ---- ----   reset horizontal sync counter
+     92 U0004		       00	   nusiz0     ds	1	; $04	 00xx 0xxx   number-size player/missle 0
+     93 U0005		       00	   nusiz1     ds	1	; $05	 00xx 0xxx   number-size player/missle 1
+     94 U0006		       00	   colup0     ds	1	; $06	 xxxx xxx0   color-luminance player 0
+     95 U0007		       00	   colup1     ds	1	; $07	 xxxx xxx0   color-luminance player 1
+     96 U0008		       00	   colupf     ds	1	; $08	 xxxx xxx0   color-luminance playfield
+     97 U0009		       00	   colubk     ds	1	; $09	 xxxx xxx0   color-luminance background
+     98 U000a		       00	   ctrlpf     ds	1	; $0a	 00xx 0xxx   control playfield, ball, collisions
+     99 U000b		       00	   refp0      ds	1	; $0b	 0000 x000   reflection player 0
+    100 U000c		       00	   refp1      ds	1	; $0c	 0000 x000   reflection player 1
+    101 U000d		       00	   pf0	      ds	1	; $0d	 xxxx 0000   playfield register byte 0
+    102 U000e		       00	   pf1	      ds	1	; $0e	 xxxx xxxx   playfield register byte 1
+    103 U000f		       00	   pf2	      ds	1	; $0f	 xxxx xxxx   playfield register byte 2
+    104 U0010		       00	   resp0      ds	1	; $10	 ---- ----   reset player 0
+    105 U0011		       00	   resp1      ds	1	; $11	 ---- ----   reset player 1
+    106 U0012		       00	   resm0      ds	1	; $12	 ---- ----   reset missle 0
+    107 U0013		       00	   resm1      ds	1	; $13	 ---- ----   reset missle 1
+    108 U0014		       00	   resbl      ds	1	; $14	 ---- ----   reset ball
+    109 U0015		       00	   audc0      ds	1	; $15	 0000 xxxx   audio control 0
+    110 U0016		       00	   audc1      ds	1	; $16	 0000 xxxx   audio control 1
+    111 U0017		       00	   audf0      ds	1	; $17	 000x xxxx   audio frequency 0
+    112 U0018		       00	   audf1      ds	1	; $18	 000x xxxx   audio frequency 1
+    113 U0019		       00	   audv0      ds	1	; $19	 0000 xxxx   audio volume 0
+    114 U001a		       00	   audv1      ds	1	; $1a	 0000 xxxx   audio volume 1
+    115 U001b		       00	   grp0       ds	1	; $1b	 xxxx xxxx   graphics register player 0
+    116 U001c		       00	   grp1       ds	1	; $1c	 xxxx xxxx   graphics register player 1
+    117 U001d		       00	   enam0      ds	1	; $1d	 0000 00x0   graphics enable missle 0
+    118 U001e		       00	   enam1      ds	1	; $1e	 0000 00x0   graphics enable missle 1
+    119 U001f		       00	   enabl      ds	1	; $1f	 0000 00x0   graphics enable ball
+    120 U0020		       00	   hmp0       ds	1	; $20	 xxxx 0000   horizontal motion player 0
+    121 U0021		       00	   hmp1       ds	1	; $21	 xxxx 0000   horizontal motion player 1
+    122 U0022		       00	   hmm0       ds	1	; $22	 xxxx 0000   horizontal motion missle 0
+    123 U0023		       00	   hmm1       ds	1	; $23	 xxxx 0000   horizontal motion missle 1
+    124 U0024		       00	   hmbl       ds	1	; $24	 xxxx 0000   horizontal motion ball
+    125 U0025		       00	   vdelp0     ds	1	; $25	 0000 000x   vertical delay player 0
+    126 U0026		       00	   vdelp1     ds	1	; $26	 0000 000x   vertical delay player 1
+    127 U0027		       00	   vdelbl     ds	1	; $27	 0000 000x   vertical delay ball
+    128 U0028		       00	   resmp0     ds	1	; $28	 0000 00x0   reset missle 0 to player 0
+    129 U0029		       00	   resmp1     ds	1	; $29	 0000 00x0   reset missle 1 to player 1
+    130 U002a		       00	   hmove      ds	1	; $2a	 ---- ----   apply horizontal motion
+    131 U002b		       00	   hmclr      ds	1	; $2b	 ---- ----   clear horizontal move registers
+    132 U002c		       00	   cxclr      ds	1	; $2c	 ---- ----   clear collision latches
+    133 U002d
+    134 U002d							;-------------------------------------------------------------------------------
+    135 U002d
+    136 U000e ????				      seg.u	tia_registers_read
+    137 U0000					      org	tia_base_read_address
+    138 U0000
+    139 U0000							;											bit 7	 bit 6
+    140 U0000		       00	   cxm0p      ds	1	; $00	     xx00 0000	     read collision  m0-p1   m0-p0
+    141 U0001		       00	   cxm1p      ds	1	; $01	     xx00 0000			     m1-p0   m1-p1
+    142 U0002		       00	   cxp0fb     ds	1	; wsync	xx00 0000			p0-pf	p0-bl
+    143 U0003		       00	   cxp1fb     ds	1	; $03	     xx00 0000			     p1-pf   p1-bl
+    144 U0004		       00	   cxm0fb     ds	1	; $04	     xx00 0000			     m0-pf   m0-bl
+    145 U0005		       00	   cxm1fb     ds	1	; $05	     xx00 0000			     m1-pf   m1-bl
+    146 U0006		       00	   cxblpf     ds	1	; $06	     x000 0000			     bl-pf   -----
+    147 U0007		       00	   cxppmm     ds	1	; $07	     xx00 0000			     p0-p1   m0-m1
+    148 U0008		       00	   inpt0      ds	1	; $08	     x000 0000	     read pot port 0
+    149 U0009		       00	   inpt1      ds	1	; $09	     x000 0000	     read pot port 1
+    150 U000a		       00	   inpt2      ds	1	; $0a	     x000 0000	     read pot port 2
+    151 U000b		       00	   inpt3      ds	1	; $0b	     x000 0000	     read pot port 3
+    152 U000c		       00	   inpt4      ds	1	; $0c		x000 0000	 read input (trigger) 0
+    153 U000d		       00	   inpt5      ds	1	; $0d		x000 0000	 read input (trigger) 1
+    154 U000e
+    155 U000e							;-------------------------------------------------------------------------------
+    156 U000e
+    157 U0298 ????				      seg.u	riot
+    158 U0280					      org	$280
+    159 U0280
+    160 U0280							; riot memory map
+    161 U0280
+    162 U0280		       00	   swcha      ds	1	; $280      port a data register for joysticks:
+    163 U0281							;			bits 4-7 for player 1.  bits 0-3 for player 2.
+    164 U0281
+    165 U0281		       00	   swacnt     ds	1	; $281      port a data direction register (ddr)
+    166 U0282		       00	   swchb      ds	1	; $282		port b data (console switches)
+    167 U0283		       00	   swbcnt     ds	1	; $283      port b ddr
+    168 U0284		       00	   intim      ds	1	; $284		timer output
+    169 U0285
+    170 U0285		       00	   timint     ds	1	; $285
+    171 U0286
+    172 U0286							; unused/undefined registers ($285-$294)
+    173 U0286
+    174 U0286		       00		      ds	1	; $286
+    175 U0287		       00		      ds	1	; $287
+    176 U0288		       00		      ds	1	; $288
+    177 U0289		       00		      ds	1	; $289
+    178 U028a		       00		      ds	1	; $28a
+    179 U028b		       00		      ds	1	; $28b
+    180 U028c		       00		      ds	1	; $28c
+    181 U028d		       00		      ds	1	; $28d
+    182 U028e		       00		      ds	1	; $28e
+    183 U028f		       00		      ds	1	; $28f
+    184 U0290		       00		      ds	1	; $290
+    185 U0291		       00		      ds	1	; $291
+    186 U0292		       00		      ds	1	; $292
+    187 U0293		       00		      ds	1	; $293
+    188 U0294
+    189 U0294		       00	   tim1t      ds	1	; $294		set 1 clock interval
+    190 U0295		       00	   tim8t      ds	1	; $295      set 8 clock interval
+    191 U0296		       00	   tim64t     ds	1	; $296      set 64 clock interval
+    192 U0297		       00	   t1024t     ds	1	; $297      set 1024 clock interval
+    193 U0298
+    194 U0298							;-------------------------------------------------------------------------------
+    195 U0298							; the following required for back-compatibility with code which does not use
+    196 U0298							; segments.
+    197 U0298
+    198  10000 ????				       seg
+    199  10000 ????
+    200  10000 ????						; eof
+------- FILE main.asm
+      3  f000					      org	$f000
+      4  f000
+      5  f000		       00 80	   pfrow      =	$80
+      6  f000		       00 81	   diceGrPt   =	$81
+      7  f000		       00 83	   fireflag   =	$83
+      8  f000		       00 84	   state      =	$84
+      9  f000		       00 85	   rolltimer  =	$85
+     10  f000		       00 ff	   seed       =	$ff
+     11  f000		       00 90	   diceroll   =	$90
+     12  f000		       00 32	   timer      =	50
+     13  f000
+     14  f000
+     15  f000				   start
+     16  f000		       78		      sei
+     17  f001		       a2 ff		      ldx	#seed
+     18  f003		       a4 ff		      ldy	seed
+     19  f005		       9a		      txs
+     20  f006		       a9 00		      lda	#0
+     21  f008				   clear
+     22  f008		       95 00		      sta	0,x
+     23  f00a		       ca		      dex
+     24  f00b		       d0 fb		      bne	clear
+     25  f00d		       84 ff		      sty	$ff
+     26  f00f
+     27  f00f		       a9 00		      lda	#$00
+     28  f011		       85 09		      sta	colubk
+     29  f013
+     30  f013		       a9 0e		      lda	#$0e
+     31  f015		       85 08		      sta	colupf
+     32  f017
+     33  f017		       a9 01		      lda	#1
+     34  f019		       85 0a		      sta	ctrlpf
+     35  f01b
+     36  f01b		       a9 02		      lda	#2
+     37  f01d		       85 90		      sta	diceroll
+     38  f01f
+     39  f01f		       a9 00		      lda	#0
+     40  f021		       85 84		      sta	state
+     41  f023
+     42  f023		       a9 32		      lda	#timer
+     43  f025		       85 85		      sta	rolltimer
+     44  f027
+     45  f027							; Sound
+     46  f027		       a9 02		      lda	#2	; set a waveform (4 = square wave)
+     47  f029		       85 15		      sta	audc0
+     48  f02b
+     49  f02b		       a9 04		      lda	#4	; set frequency (0–31, lower = higher pitch)
+     50  f02d		       85 17		      sta	audf0
+     51  f02f
+     52  f02f				   sync
+     53  f02f		       a9 02		      lda	#2
+     54  f031		       85 00		      sta	vsync
+     55  f033		       85 02		      sta	wsync
+     56  f035		       85 02		      sta	wsync
+     57  f037		       85 02		      sta	wsync
+     58  f039		       a9 00		      lda	#0
+     59  f03b		       85 00		      sta	vsync
+     60  f03d
+     61  f03d		       a5 84		      lda	state
+     62  f03f		       d0 1b		      bne	nopress
+     63  f041
+     64  f041		       a5 0c		      lda	inpt4
+     65  f043		       30 17		      bmi	nopress
+     66  f045
+     67  f045							; Roll the dice
+     68  f045				   rolldice
+     69  f045		       a5 ff		      lda	seed
+     70  f047		       0a		      asl
+     71  f048		       90 02		      bcc	notaps
+     72  f04a		       49 1d		      eor	#$1d
+     73  f04c				   notaps
+     74  f04c		       85 ff		      sta	seed
+     75  f04e
+     76  f04e		       29 07		      and	#%00000111
+     77  f050		       aa		      tax
+     78  f051		       ca		      dex
+     79  f052		       ca		      dex
+     80  f053		       30 f0		      bmi	rolldice
+     81  f055		       e8		      inx
+     82  f056		       86 90		      stx	diceroll
+     83  f058
+     84  f058		       a9 02		      lda	#2
+     85  f05a		       85 84		      sta	state
+     86  f05c
+     87  f05c				   nopress
+     88  f05c		       a9 00		      lda	#0
+     89  f05e		       85 02		      sta	wsync
+     90  f060
+     91  f060		       a9 45		      lda	#69
+     92  f062		       85 80		      sta	pfrow
+     93  f064
+     94  f064		       a2 c0		      ldx	#192
+     95  f066		       a0 01		      ldy	#1
+     96  f068							; Set graphics for dice
+     97  f068		       a5 90		      lda	diceroll
+     98  f06a		       38		      sec
+     99  f06b		       e9 01		      sbc	#1
+    100  f06d		       0a		      asl
+    101  f06e		       a8		      tay
+    102  f06f		       b9 e1 f0 	      lda	bytemap,y
+    103  f072		       85 81		      sta	diceGrPt
+    104  f074		       b9 e2 f0 	      lda	bytemap,y+1
+    105  f077		       85 82		      sta	diceGrPt+1
+    106  f079
+    107  f079				   rendertop
+    108  f079		       a2 25		      ldx	#37
+    109  f07b				   top
+    110  f07b		       85 02		      sta	wsync
+    111  f07d		       ca		      dex
+    112  f07e		       d0 fb		      bne	top
+    113  f080		       a9 00		      lda	#0
+    114  f082		       85 01		      sta	vblank
+    115  f084
+    116  f084		       a5 84		      lda	state
+    117  f086		       d0 3a		      bne	render2
+    118  f088
+    119  f088		       a9 45		      lda	#69
+    120  f08a		       85 80		      sta	pfrow
+    121  f08c
+    122  f08c				   render1
+    123  f08c		       a9 00		      lda	#0
+    124  f08e		       85 19		      sta	audv0
+    125  f090							; y = Only update pf every 8'th scanline
+    126  f090		       a2 c0		      ldx	#192
+    127  f092		       a0 01		      ldy	#1
+    128  f094				   visible
+    129  f094		       85 02		      sta	wsync
+    130  f096		       88		      dey
+    131  f097		       f0 11		      beq	updatePf
+    132  f099				   donepf
+    133  f099		       ca		      dex
+    134  f09a		       d0 f8		      bne	visible
+    135  f09c
+    136  f09c
+    137  f09c
+    138  f09c				   renderbottom
+    139  f09c		       a9 02		      lda	#2
+    140  f09e		       85 01		      sta	vblank
+    141  f0a0		       a2 1e		      ldx	#30
+    142  f0a2				   bottom
+    143  f0a2		       85 02		      sta	wsync
+    144  f0a4		       ca		      dex
+    145  f0a5		       d0 fb		      bne	bottom
+    146  f0a7
+    147  f0a7		       4c 2f f0 	      jmp	sync
+    148  f0aa
+    149  f0aa				   updatePf
+    150  f0aa		       a4 80		      ldy	pfrow
+    151  f0ac		       b1 81		      lda	(diceGrPt),y
+    152  f0ae		       85 0d		      sta	pf0
+    153  f0b0		       88		      dey
+    154  f0b1		       b1 81		      lda	(diceGrPt),y
+    155  f0b3		       85 0f		      sta	pf2
+    156  f0b5		       88		      dey
+    157  f0b6		       b1 81		      lda	(diceGrPt),y
+    158  f0b8		       85 0e		      sta	pf1
+    159  f0ba		       88		      dey
+    160  f0bb		       84 80		      sty	pfrow
+    161  f0bd
+    162  f0bd		       a0 09		      ldy	#9
+    163  f0bf		       4c 99 f0 	      jmp	donepf
+    164  f0c2
+    165  f0c2				   render2
+    166  f0c2		       a9 05		      lda	#5	; set volume (0–15)
+    167  f0c4		       85 19		      sta	audv0
+    168  f0c6
+    169  f0c6		       a5 85		      lda	rolltimer
+    170  f0c8		       38		      sec
+    171  f0c9		       e9 01		      sbc	#1
+    172  f0cb		       85 85		      sta	rolltimer
+    173  f0cd		       d0 08		      bne	nostatechange
+    174  f0cf		       a9 00		      lda	#0
+    175  f0d1		       85 84		      sta	state
+    176  f0d3		       a9 32		      lda	#timer
+    177  f0d5		       85 85		      sta	rolltimer
+    178  f0d7				   nostatechange
+    179  f0d7		       a2 c0		      ldx	#192
+    180  f0d9				   visible2
+    181  f0d9		       85 02		      sta	wsync
+    182  f0db		       ca		      dex
+    183  f0dc		       d0 fb		      bne	visible2
+    184  f0de		       4c 9c f0 	      jmp	renderbottom
+    185  f0e1
+    186  f0e1
+    187  f0e1				   bytemap
+    188  f0e1		       ed f0		      .word.w	one
+    189  f0e3		       35 f1		      .word.w	two
+    190  f0e5		       7d f1		      .word.w	three
+    191  f0e7		       c5 f1		      .word.w	four
+    192  f0e9		       0d f2		      .word.w	five
+    193  f0eb		       55 f2		      .word.w	six
+    194  f0ed
+    195  f0ed				   one
+    196  f0ed		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 0)
+    197  f0f0		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 1)
+    198  f0f3		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 2)
+    199  f0f6		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 3)
+    200  f0f9		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 4)
+    201  f0fc		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 5)
+    202  f0ff		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| ( 6)
+    203  f102		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | ( 7)
+    204  f105		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | ( 8)
+    205  f108		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | ( 9)
+    206  f10b		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (10)
+    207  f10e		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (11)
+    208  f111		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (12)
+    209  f114		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (13)
+    210  f117		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (14)
+    211  f11a		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (15)
+    212  f11d		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (16)
+    213  f120		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| (17)
+    214  f123		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (18)
+    215  f126		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (19)
+    216  f129		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (20)
+    217  f12c		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (21)
+    218  f12f		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (22)
+    219  f132		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (23)
+    220  f135				   two
+    221  f135		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 0)
+    222  f138		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 1)
+    223  f13b		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 2)
+    224  f13e		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 3)
+    225  f141		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 4)
+    226  f144		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 5)
+    227  f147		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| ( 6)
+    228  f14a		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | ( 7)
+    229  f14d		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | ( 8)
+    230  f150		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| ( 9)
+    231  f153		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (10)
+    232  f156		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (11)
+    233  f159		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (12)
+    234  f15c		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (13)
+    235  f15f		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (14)
+    236  f162		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (15)
+    237  f165		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (16)
+    238  f168		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| (17)
+    239  f16b		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (18)
+    240  f16e		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (19)
+    241  f171		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (20)
+    242  f174		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (21)
+    243  f177		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (22)
+    244  f17a		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (23)
+    245  f17d				   three
+    246  f17d		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 0)
+    247  f180		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 1)
+    248  f183		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 2)
+    249  f186		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 3)
+    250  f189		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 4)
+    251  f18c		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 5)
+    252  f18f		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| ( 6)
+    253  f192		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | ( 7)
+    254  f195		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| ( 8)
+    255  f198		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| ( 9)
+    256  f19b		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (10)
+    257  f19e		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (11)
+    258  f1a1		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (12)
+    259  f1a4		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (13)
+    260  f1a7		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (14)
+    261  f1aa		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (15)
+    262  f1ad		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (16)
+    263  f1b0		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| (17)
+    264  f1b3		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (18)
+    265  f1b6		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (19)
+    266  f1b9		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (20)
+    267  f1bc		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (21)
+    268  f1bf		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (22)
+    269  f1c2		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (23)
+    270  f1c5				   four
+    271  f1c5		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 0)
+    272  f1c8		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 1)
+    273  f1cb		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 2)
+    274  f1ce		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 3)
+    275  f1d1		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 4)
+    276  f1d4		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 5)
+    277  f1d7		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| ( 6)
+    278  f1da		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | ( 7)
+    279  f1dd		       00 00 19 	      .byte.b	$00,$00,$19	;|	       X  XX   | ( 8)
+    280  f1e0		       00 00 19 	      .byte.b	$00,$00,$19	;|	       X  XX   | ( 9)
+    281  f1e3		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (10)
+    282  f1e6		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (11)
+    283  f1e9		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (12)
+    284  f1ec		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (13)
+    285  f1ef		       00 00 19 	      .byte.b	$00,$00,$19	;|	       X  XX   | (14)
+    286  f1f2		       00 00 19 	      .byte.b	$00,$00,$19	;|	       X  XX   | (15)
+    287  f1f5		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (16)
+    288  f1f8		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| (17)
+    289  f1fb		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (18)
+    290  f1fe		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (19)
+    291  f201		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (20)
+    292  f204		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (21)
+    293  f207		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (22)
+    294  f20a		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (23)
+    295  f20d				   five
+    296  f20d		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 0)
+    297  f210		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 1)
+    298  f213		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 2)
+    299  f216		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 3)
+    300  f219		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 4)
+    301  f21c		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 5)
+    302  f21f		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| ( 6)
+    303  f222		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | ( 7)
+    304  f225		       00 00 19 	      .byte.b	$00,$00,$19	;|	       X  XX   | ( 8)
+    305  f228		       00 00 19 	      .byte.b	$00,$00,$19	;|	       X  XX   | ( 9)
+    306  f22b		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (10)
+    307  f22e		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (11)
+    308  f231		       00 00 81 	      .byte.b	$00,$00,$81	;|	       X      X| (12)
+    309  f234		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (13)
+    310  f237		       00 00 19 	      .byte.b	$00,$00,$19	;|	       X  XX   | (14)
+    311  f23a		       00 00 19 	      .byte.b	$00,$00,$19	;|	       X  XX   | (15)
+    312  f23d		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (16)
+    313  f240		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| (17)
+    314  f243		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (18)
+    315  f246		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (19)
+    316  f249		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (20)
+    317  f24c		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (21)
+    318  f24f		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (22)
+    319  f252		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (23)
+    320  f255				   six
+    321  f255		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 0)
+    322  f258		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 1)
+    323  f25b		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 2)
+    324  f25e		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 3)
+    325  f261		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 4)
+    326  f264		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | ( 5)
+    327  f267		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| ( 6)
+    328  f26a		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | ( 7)
+    329  f26d		       00 00 31 	      .byte.b	$00,$00,$31	;|	       X   XX  | ( 8)
+    330  f270		       00 00 31 	      .byte.b	$00,$00,$31	;|	       X   XX  | ( 9)
+    331  f273		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (10)
+    332  f276		       00 00 31 	      .byte.b	$00,$00,$31	;|	       X   XX  | (11)
+    333  f279		       00 00 31 	      .byte.b	$00,$00,$31	;|	       X   XX  | (12)
+    334  f27c		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (13)
+    335  f27f		       00 00 31 	      .byte.b	$00,$00,$31	;|	       X   XX  | (14)
+    336  f282		       00 00 31 	      .byte.b	$00,$00,$31	;|	       X   XX  | (15)
+    337  f285		       00 00 01 	      .byte.b	$00,$00,$01	;|	       X       | (16)
+    338  f288		       00 00 ff 	      .byte.b	$00,$00,$FF	;|	       XXXXXXXX| (17)
+    339  f28b		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (18)
+    340  f28e		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (19)
+    341  f291		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (20)
+    342  f294		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (21)
+    343  f297		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (22)
+    344  f29a		       00 00 00 	      .byte.b	$00,$00,$00	;|		       | (23)
+    345  f29d
+    346  f29d
+    347  f29d
+    348  fffc					      org	$fffc
+    349  fffc		       00 f0		      .word.w	start
+    350  fffe		       00 f0		      .word.w	start
