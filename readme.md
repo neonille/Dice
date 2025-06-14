@@ -19,15 +19,11 @@ Welcome to the most technologically advanced dice roller for the Atari 2600! Why
 - No batteries required (unless your console needs them)
 
 ## Why?
-Because sometimes you just want to roll dice with 128 bytes of RAM and a dream.
+Why not?
 
 ## Troubleshooting
 - If you roll a 7, please contact your local exorcist.
-- If nothing happens, try plugging in the joystick. Or your TV. Or both.
-
-## Credits
-- Code: You (or someone equally awesome)
-- Inspiration: Board games and the relentless march of technology
+- If nothing happens, it wasn't meant to be
 
 ---
 
